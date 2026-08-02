@@ -1,0 +1,10 @@
+# Build inner-loop gate. Must stay under 10s total or it will get skipped — speed is a feature.
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      run: test -z "$(gofmt -l .)" || { echo "unformatted:"; gofmt -l .; exit 1; }
+    vet:
+      run: go vet ./...
+    test:
+      run: go test -short ./...
