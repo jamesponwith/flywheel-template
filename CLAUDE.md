@@ -20,4 +20,5 @@ Go project built inside the personal agentic flywheel: Intent → Build → Vali
 
 - Small commits, imperative subject, reference the bead ID: `bd-12: add retry backoff`.
 - Never bypass a failing pre-commit hook. If a gate gets skipped twice, delete it or automate it.
+- Pre-push runs a local AI review (ponytail-review) — advisory findings, read them before opening the PR.
 - PRs merge only on a green Validate pipeline; the human is the final approver.

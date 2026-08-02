@@ -16,7 +16,7 @@ agent) into the full workflow.
 
 - `CLAUDE.md` — agent conventions: intent sources, ponytail, test style, commit protocol
 - `SPEC.md` + `docs/adr/` — where intent lives (Intent)
-- `lefthook.yml` — pre-commit: gofmt, vet, short tests, <10s (Build)
+- `lefthook.yml` — pre-commit: gofmt, vet, short tests, <10s (Build); pre-push: local AI review (Validate)
 - `.github/workflows/pr.yml` — lint + unit gate, no green no merge (Validate)
 - `.claude/settings.json` — hooks: `bd prime` on session start, fmt+vet on stop
 

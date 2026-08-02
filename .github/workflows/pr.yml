@@ -1,4 +1,5 @@
-# Validate: no green, no merge. M1 = lint + unit; component suite and AI review land in M2.
+# Validate: no green, no merge. M1 = lint + unit; component suite lands in M2.
+# AI review runs locally in the pre-push hook (see lefthook.yml + docs/adr/0002), not here.
 name: pr
 
 on:
