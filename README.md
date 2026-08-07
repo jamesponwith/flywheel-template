@@ -19,7 +19,9 @@ agent) into the full workflow.
 - `lefthook.yml` — pre-commit: gofmt, vet, short tests, <10s (Build); pre-push: local AI review (Validate)
 - `.github/workflows/pr.yml` — lint + unit gate, no green no merge (Validate)
 - `.claude/settings.json` — hooks: `bd prime` on session start, fmt+vet on stop
+- `.github/workflows/release.yml` + `.goreleaser.yaml` — semver tag → binaries +
+  changelog on GitHub Releases (Release)
 
-Release (goreleaser) and Learn (DORA collector + dashboard) land in later
-milestones of the [flywheel spec](https://github.com/jamesponwith/agentic-flywheel).
+Learn (DORA collector + dashboard) lands in a later milestone of the
+[flywheel spec](https://github.com/jamesponwith/agentic-flywheel).
 
