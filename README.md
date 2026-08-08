@@ -21,7 +21,10 @@ agent) into the full workflow.
 - `.claude/settings.json` — hooks: `bd prime` on session start, fmt+vet on stop
 - `.github/workflows/release.yml` + `.goreleaser.yaml` — semver tag → binaries +
   changelog on GitHub Releases (Release)
+- `.github/workflows/learn.yml` + `tools/dora/` — weekly DORA-lite snapshot
+  (deploy frequency, lead time, change-failure rate, MTTR) committed to
+  `docs/dora.json`, rendered by `docs/dora.html`; label incidents `incident` (Learn)
 
-Learn (DORA collector + dashboard) lands in a later milestone of the
-[flywheel spec](https://github.com/jamesponwith/agentic-flywheel).
+All five stages of the [flywheel spec](https://github.com/jamesponwith/agentic-flywheel)
+ship with the template.
 
