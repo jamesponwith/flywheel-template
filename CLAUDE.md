@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-Go project built inside the personal agentic flywheel: Intent → Build → Validate → Release → Learn.
+Go project built inside the personal agentic flywheel: Intent → Build → Validate → Release →
+Operate → Learn.
 
 ## Before writing code (Intent)
 
@@ -22,3 +23,14 @@ Go project built inside the personal agentic flywheel: Intent → Build → Vali
 - Never bypass a failing pre-commit hook. If a gate gets skipped twice, delete it or automate it.
 - Pre-push runs a local AI review (ponytail-review) — advisory findings, read them before opening the PR.
 - PRs merge only on a green Validate pipeline; the human is the final approver.
+
+## Running in production (Operate)
+
+- `docs/slo.yml` is the contract: probe url, latency budget, and how long a
+  breach must persist before it is an incident. Point `url` at the real
+  deployment before enabling `.github/workflows/operate.yml`.
+- Keep `healthz.go` when you replace `main.go`, and wire `Healthz` into your
+  server. The version it reports is how Learn attributes an incident to a release.
+- Incidents are filed and closed by `tools/watch`, never by hand. If you find
+  yourself opening an `incident` issue manually, the prober is misconfigured —
+  fix that instead, or the DORA numbers go back to measuring your memory.
