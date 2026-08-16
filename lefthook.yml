@@ -14,4 +14,6 @@ pre-commit:
 pre-push:
   commands:
     ai-review:
-      run: command -v claude >/dev/null || exit 0; claude -p "/ponytail-review origin/main...HEAD" || true
+      # Three lenses (correctness, security, simplicity), findings recorded in
+      # .flywheel/review.jsonl. Advisory: `|| true` never blocks a push.
+      run: command -v claude >/dev/null || exit 0; claude -p "/flywheel-review origin/main...HEAD" || true

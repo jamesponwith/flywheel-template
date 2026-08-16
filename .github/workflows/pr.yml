@@ -22,4 +22,30 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go test ./...
+      # -race by default: CI caught a race the local suite never hit, which is
+      # the entire argument for running it here.
+      - run: go test -race ./...
+
+  # Facts, not judgement: the pre-push security lens reasons about the code,
+  # this checks what is verifiably true about secrets and dependencies.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks scans history, not just the tip
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: secrets
+        # Blocking. A committed secret is already leaked; failing loudly is the
+        # only useful response.
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: vulnerabilities
+        # Advisory until the noise level is known — a gate that cries wolf gets
+        # bypassed, and a bypassed gate is worse than none (ADR 0001).
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || echo "::warning::govulncheck found issues — triage into a bead"
