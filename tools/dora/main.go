@@ -135,6 +135,7 @@ func main() {
 	repo := flag.String("repo", "", "owner/name (required)")
 	out := flag.String("out", "docs/dora.json", "output path")
 	api := flag.String("api", "https://api.github.com", "GitHub API base")
+	prLimit := flag.Int("prs", 50, "how many recent closed PRs to sample for agent metrics")
 	flag.Parse()
 	if *repo == "" {
 		fmt.Fprintln(os.Stderr, "-repo required")
@@ -144,6 +145,13 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	// Agent metrics are additive: a failure here must not cost the DORA
+	// snapshot, which is the one thing this tool has always produced.
+	if a, err := collectAgent(*api, *repo, *prLimit); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: agent metrics unavailable: %v\n", err)
+	} else {
+		m["agent"] = a
 	}
 	b, _ := json.MarshalIndent(m, "", "  ")
 	if err := os.WriteFile(*out, append(b, '\n'), 0o644); err != nil {

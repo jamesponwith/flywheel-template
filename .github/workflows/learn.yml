@@ -1,4 +1,4 @@
-# Learn: weekly DORA-lite snapshot committed back to the repo. The git
+# Learn: weekly DORA-lite + agent-effectiveness snapshot committed back to the repo. The git
 # history of docs/dora.json is the trend line; docs/dora.html renders the
 # latest snapshot. Insight → new bd issues → Intent. The flywheel turns.
 name: learn
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go run ./tools/dora -repo "$GITHUB_REPOSITORY" -out docs/dora.json
+      - run: go run ./tools/dora -repo "$GITHUB_REPOSITORY" -out docs/dora.json -prs 50
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
