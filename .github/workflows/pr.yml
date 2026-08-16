@@ -14,6 +14,18 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v8
+      - name: workflows must be clone-portable
+        # A workflow that runs `go run ./tools/...` works in this template and
+        # nowhere else: instances cloned from it carry no copy of the tool.
+        # That shipped once and installed a broken operate.yml into the router.
+        run: |
+          # Match the YAML run: key only — a naive grep also matches the
+          # comment explaining this check, which is how it first failed.
+          if grep -rnE '^[^#]*run:.*go run \./tools/' .github/workflows/; then
+            echo "::error::use the module path (go run github.com/…/tools/X@latest), not a local path" >&2
+            exit 1
+          fi
+          echo "workflows are clone-portable"
 
   unit:
     runs-on: ubuntu-latest

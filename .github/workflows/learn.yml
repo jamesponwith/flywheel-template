@@ -19,7 +19,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go run ./tools/dora -repo "$GITHUB_REPOSITORY" -out docs/dora.json -prs 50
+      # Module path, not ./tools/dora — same reason as operate.yml: a clone of
+      # this template has no local copy of the collector.
+      - run: go run github.com/jamesponwith/flywheel-template/tools/dora@latest -repo "$GITHUB_REPOSITORY" -out docs/dora.json -prs 50
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
