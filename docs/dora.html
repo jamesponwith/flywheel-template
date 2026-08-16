@@ -10,11 +10,17 @@ h1{color:#7ee787;font-size:16px;font-weight:600}h1::before{content:"$ ";color:#8
 .card b{display:block;font-size:22px;color:#7ee787;font-weight:600}
 .card span{color:#8b949e}
 footer{color:#30363d}
+h2{color:#7ee787;font-size:15px;font-weight:600;margin-top:2.5rem}h2::before{content:"$ ";color:#8b949e}
+.note{color:#8b949e;margin:.25rem 0 0}
+.card em{display:block;color:#484f4a;font-style:normal;font-size:12px;margin-top:.4rem}
 #meta{color:#8b949e}
 </style>
 <h1>DORA-lite</h1>
 <div id="meta"></div>
 <div class="grid" id="g"></div>
+<h2>agent effectiveness</h2>
+<p class="note">DORA measures the software. These measure how it got written.</p>
+<div class="grid" id="a"></div>
 <footer>weekly snapshot by learn.yml · trend = git history of dora.json</footer>
 <script>
 function fmt(v, unit){ return v ? v.toFixed(1) + unit : "n/a"; }
@@ -32,5 +38,26 @@ fetch("dora.json").then(function(r){ return r.json(); }).then(function(d){
       cf.releases + " releases</span></div>" +
     "<div class='card'><b>" + fmt(mt.median, "h") + "</b><span>MTTR (median)<br>" +
       mt.samples + " samples</span></div>";
+
+  // Agent metrics are optional: snapshots predating Learn v2 have no `agent`
+  // key, and the page must still render rather than throwing.
+  var a = d.agent;
+  if (!a) {
+    document.getElementById("a").innerHTML =
+      "<div class='card'><b>n/a</b><span>not yet collected<em>run tools/dora with -prs</em></span></div>";
+    return;
+  }
+  function pct(x){ return (x * 100).toFixed(0) + "%"; }
+  document.getElementById("a").innerHTML =
+    "<div class='card'><b>" + (a.first_pass_gate.total ? pct(a.first_pass_gate.rate) : "n/a") +
+      "</b><span>first-pass gate<br>" + a.first_pass_gate.green + " / " +
+      a.first_pass_gate.total + " PRs green on the first CI run</span></div>" +
+    "<div class='card'><b>" + a.rework_commits_after_open.median +
+      "</b><span>rework (median)<br>commits pushed after the PR opened</span></div>" +
+    "<div class='card'><b>" + a.review_round_trips.median +
+      "</b><span>review round-trips<br>median reviews per PR</span></div>" +
+    "<div class='card'><b>" + (a.autonomous_prs.opened ? pct(a.autonomous_prs.clean_rate) : "n/a") +
+      "</b><span>autonomous, unedited<br>" + a.autonomous_prs.merged_without_human_edits + " / " +
+      a.autonomous_prs.opened + " agent PRs merged untouched</span></div>";
 });
 </script>
