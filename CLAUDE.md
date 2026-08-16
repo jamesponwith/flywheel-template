@@ -34,3 +34,16 @@ Operate → Learn.
 - Incidents are filed and closed by `tools/watch`, never by hand. If you find
   yourself opening an `incident` issue manually, the prober is misconfigured —
   fix that instead, or the DORA numbers go back to measuring your memory.
+
+## Agents
+
+- Unattended agents are bound by autonomy boundaries (agentic-flywheel ADR
+  0003): branch, commit, gate, PR, comment, reserve territory — never merge,
+  tag, deploy, force-push, or read secrets.
+- `tools/flywheel/guard.sh check` is the kill switch. Check it before acting;
+  a non-zero exit means stop immediately and silently.
+- `/flywheel-next` is the unit of autonomous work: one bead, one worktree, one
+  PR, then stop. "Could not finish" is a correct outcome — leave the bead open
+  with a comment rather than papering over a red gate.
+- `/flywheel-review` runs the three-lens panel at pre-push and records every
+  finding, including rejected ones, in `.flywheel/review.jsonl`.

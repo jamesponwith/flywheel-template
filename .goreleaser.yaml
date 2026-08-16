@@ -8,6 +8,26 @@ builds:
     env: [CGO_ENABLED=0]
     goos: [linux, darwin]
     goarch: [amd64, arm64]
+    ldflags:
+      # Operate needs the running binary to report which release it is, so an
+      # incident can be attributed to a deploy (healthz.go, ADR 0003).
+      - -s -w -X main.Version={{.Version}}
+
+# An SBOM per archive: what is actually inside the thing you published.
+sboms:
+  - artifacts: archive
+
+# Keyless signing via the Actions OIDC token — no key to store, rotate, or leak.
+# Verify with:
+#   cosign verify-blob --certificate <sig>.pem --signature <sig>.sig \
+#     --certificate-identity-regexp 'https://github.com/<owner>/<repo>' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com <file>
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args: ["sign-blob", "--output-certificate=${certificate}", "--output-signature=${signature}", "${artifact}", "--yes"]
+    artifacts: checksum
+    output: true
 
 changelog:
   filters:
