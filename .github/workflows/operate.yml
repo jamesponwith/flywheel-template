@@ -27,6 +27,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go run ./tools/watch -repo "$GITHUB_REPOSITORY" -slo docs/slo.yml
+      # Module path, not ./tools/watch: instances cloned from this template do
+      # not carry a copy, so the local form works here and nowhere else. One
+      # canonical prober, invoked cross-repo (ADR 0005).
+      - run: go run github.com/jamesponwith/flywheel-template/tools/watch@latest -repo "$GITHUB_REPOSITORY" -slo docs/slo.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
