@@ -1,6 +1,26 @@
 {
+  "agent": {
+    "autonomous_prs": {
+      "clean_rate": 0,
+      "merged_without_human_edits": 0,
+      "opened": 0
+    },
+    "first_pass_gate": {
+      "green": 10,
+      "rate": 1,
+      "total": 10
+    },
+    "review_round_trips": {
+      "median": 0,
+      "samples": 10
+    },
+    "rework_commits_after_open": {
+      "median": 0,
+      "samples": 10
+    }
+  },
   "change_failure_rate": {
-    "incidents": 0,
+    "incidents": 1,
     "rate": 0,
     "releases": 0
   },
@@ -9,7 +29,7 @@
     "releases_last_30d": 0,
     "releases_total": 0
   },
-  "generated_at": "2026-08-10T07:22:55Z",
+  "generated_at": "2026-08-17T06:43:50Z",
   "lead_time_hours": {
     "median": 0,
     "samples": 0
