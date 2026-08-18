@@ -87,20 +87,20 @@ func TestCollectAgent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fp := got["first_pass_gate"].(map[string]any)
+	fp := got["final_gate_pass"].(map[string]any)
 	if fp["total"] != 3 {
-		t.Errorf("first-pass total = %v, want 3 (the unmerged PR is excluded)", fp["total"])
+		t.Errorf("gate total = %v, want 3 (the unmerged PR is excluded)", fp["total"])
 	}
 	if fp["green"] != 2 {
-		t.Errorf("first-pass green = %v, want 2 — skipped and neutral count as green", fp["green"])
+		t.Errorf("gate green = %v, want 2 — skipped and neutral count as green", fp["green"])
 	}
 
 	auto := got["autonomous_prs"].(map[string]any)
 	if auto["opened"] != 2 {
 		t.Errorf("autonomous opened = %v, want 2 (bead/ branches only)", auto["opened"])
 	}
-	if auto["merged_without_human_edits"] != 1 {
-		t.Errorf("clean = %v, want 1 — PR 2 got two commits after it opened", auto["merged_without_human_edits"])
+	if auto["merged_without_further_commits"] != 1 {
+		t.Errorf("clean = %v, want 1 — PR 2 got two commits after it opened", auto["merged_without_further_commits"])
 	}
 
 	rw := got["rework_commits_after_open"].(map[string]any)
@@ -120,11 +120,40 @@ func TestCollectAgentSurvivesAnEmptyRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fp := got["first_pass_gate"].(map[string]any)
+	fp := got["final_gate_pass"].(map[string]any)
 	if fp["rate"] != 0.0 {
 		t.Errorf("rate = %v, want 0 for an empty repo (not NaN)", fp["rate"])
 	}
 	if fmt.Sprint(fp["rate"]) == "NaN" {
 		t.Error("division by zero produced NaN, which does not survive JSON encoding")
+	}
+}
+
+// A metric that cannot mean anything in this workflow must say so in the data,
+// not only in a comment. review_round_trips reading "median 0 across 34
+// samples" was the worst artifact this project produced: it looked like
+// excellence and measured nothing, because review runs locally and GitHub
+// review events never exist here.
+func TestUnmeasurableMetricsDeclareThemselves(t *testing.T) {
+	srv := agentAPI(t)
+	defer srv.Close()
+	got, err := collectAgent(srv.URL, "o/r", 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"review_round_trips", "rework_commits_after_open"} {
+		m, ok := got[key].(map[string]any)
+		if !ok {
+			t.Fatalf("%s missing", key)
+		}
+		if m["measurable"] != false {
+			t.Errorf("%s claims to be measurable; it is structurally pinned in this workflow", key)
+		}
+		if why, _ := m["why"].(string); why == "" {
+			t.Errorf("%s is unmeasurable but does not say why", key)
+		}
+	}
+	if _, ok := got["first_pass_gate"]; ok {
+		t.Error("first_pass_gate is back: /check-runs returns filter=latest and cannot see a first attempt")
 	}
 }

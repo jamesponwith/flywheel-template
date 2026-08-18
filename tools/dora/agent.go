@@ -83,7 +83,11 @@ func collectAgent(api, repo string, limit int) (map[string]any, error) {
 			continue // unmerged PRs say nothing about whether the gate passed
 		}
 
-		// First-pass gate: was the earliest check run on the head SHA green?
+		// First-pass gate. This asks /check-runs, which defaults to
+		// filter=latest — the state AFTER any reruns — so it cannot see a
+		// first attempt that failed and was retried. It is therefore an
+		// ALL-PASS rate, pinned near 1.0 by construction, and is reported as
+		// such rather than under a name it does not earn.
 		var cr checkRuns
 		if err := gh(api, fmt.Sprintf("/repos/%s/commits/%s/check-runs", repo, p.Head.SHA), &cr); err == nil && len(cr.Runs) > 0 {
 			slices.SortFunc(cr.Runs, func(a, b struct {
@@ -140,18 +144,45 @@ func collectAgent(api, repo string, limit int) (map[string]any, error) {
 	}
 
 	return map[string]any{
-		"first_pass_gate": map[string]any{
+		// Every block below carries `measurable` and, when false, `why`. The
+		// cost accounting already distinguishes zero from unmeasured; these
+		// metrics needed the same, because each was reading near-perfect for
+		// structural reasons and a near-perfect number nobody can explain is
+		// worse than an absent one.
+		"final_gate_pass": map[string]any{
 			"green": firstPassGreen, "total": firstPassTotal, "rate": rate(firstPassGreen, firstPassTotal),
+			"measurable": true,
+			"note": "state of checks at merge, not the first attempt: /check-runs " +
+				"returns filter=latest, so a failed-then-rerun PR counts as green. " +
+				"Structurally near 1.0 — do not read it as first-pass.",
 		},
 		"rework_commits_after_open": map[string]any{
 			"median": medianInt(reworkCounts), "samples": len(reworkCounts),
+			// Commits are squash-merged and authored seconds BEFORE the PR is
+			// opened, so "commits dated after PR creation" is near-always 0
+			// regardless of how much rework happened.
+			"measurable": false,
+			"why":        "squash-merge workflow: commit dates precede PR creation, so this is structurally 0",
 		},
 		"review_round_trips": map[string]any{
 			"median": medianInt(tripCounts), "samples": len(tripCounts),
+			// ADR 0002/0013: review runs locally, inside the agent's loop. There
+			// are no GitHub review events to count, so this is structurally 0
+			// however good or bad review actually is. Reporting median 0 over 34
+			// samples as if it meant something was the worst artifact this
+			// project produced — it read like excellence and measured nothing.
+			"measurable": false,
+			"why":        "review happens locally (ADR 0002/0013); GitHub review events do not exist in this workflow",
 		},
 		"autonomous_prs": map[string]any{
-			"opened": autonomous, "merged_without_human_edits": autonomousClean,
-			"clean_rate": rate(autonomousClean, autonomous),
+			"opened": autonomous,
+			// Renamed: the old key claimed "merged_without_human_edits" while
+			// never checking WHO authored anything after the PR opened. It
+			// counts PRs with no post-open commits, by anyone.
+			"merged_without_further_commits": autonomousClean,
+			"clean_rate":                     rate(autonomousClean, autonomous),
+			"measurable":                     true,
+			"note":                           "counts bead/* PRs with no commits after opening, by any author — not a measure of human intervention",
 		},
 	}, nil
 }
