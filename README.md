@@ -9,7 +9,10 @@ agent) into the full workflow.
 
 1. "Use this template" on GitHub, then clone.
 2. Edit the module path in `go.mod`; replace `main.go` / `main_test.go`.
-3. `lefthook install` (pre-commit hooks) and `bd init` (issue tracking).
+3. `bd init`, then `tools/flywheel/setup-beads.sh`, in that order. `bd init` points `core.hooksPath`
+   at its own hooks and tracks its JSONL export. The script untracks the exports, pushes the beads
+   database to `refs/dolt/data` on origin, and hands `.git/hooks` to lefthook (agentic-flywheel ADRs
+   0011 and 0012). Skipping it is how a merged branch's stale export reopened closed beads.
 4. Fill in `SPEC.md`. Every feature starts as a `bd` issue.
 
 ## What's inside

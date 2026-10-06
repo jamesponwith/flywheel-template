@@ -45,5 +45,7 @@ Operate → Learn.
 - `/flywheel-next` is the unit of autonomous work: one bead, one worktree, one
   PR, then stop. "Could not finish" is a correct outcome — leave the bead open
   with a comment rather than papering over a red gate.
+- The beads database is the source of truth; `.beads/*.jsonl` are local exports, never committed.
+  Run `bd dolt push` after closing beads so the durable copy on origin stays current.
 - `/flywheel-review` runs the three-lens panel at pre-push and records every
   finding, including rejected ones, in `.flywheel/review.jsonl`.
