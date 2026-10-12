@@ -8,22 +8,22 @@
       "opened": 0
     },
     "final_gate_pass": {
-      "green": 13,
+      "green": 16,
       "measurable": true,
       "note": "state of checks at merge, not the first attempt: /check-runs returns filter=latest, so a failed-then-rerun PR counts as green. Structurally near 1.0 — do not read it as first-pass.",
       "rate": 1,
-      "total": 13
+      "total": 16
     },
     "review_round_trips": {
       "measurable": false,
       "median": 0,
-      "samples": 13,
+      "samples": 16,
       "why": "review happens locally (ADR 0002/0013); GitHub review events do not exist in this workflow"
     },
     "rework_commits_after_open": {
       "measurable": false,
       "median": 0,
-      "samples": 13,
+      "samples": 16,
       "why": "squash-merge workflow: commit dates precede PR creation, so this is structurally 0"
     }
   },
@@ -37,7 +37,7 @@
     "releases_last_30d": 0,
     "releases_total": 0
   },
-  "generated_at": "2026-10-05T13:26:11Z",
+  "generated_at": "2026-10-12T14:15:40Z",
   "lead_time_hours": {
     "median": 0,
     "samples": 0
