@@ -28,14 +28,20 @@ fetch("dora.json").then(function(r){ return r.json(); }).then(function(d){
   document.getElementById("meta").textContent = d.repo + " · " + d.generated_at;
   var df = d.deploy_frequency, lt = d.lead_time_hours,
       cf = d.change_failure_rate, mt = d.mttr_hours;
+  // Snapshots from before deployments counted releases; newer ones say which.
+  var what = df.source === "deployments" ? "deploys" : "releases";
+  var total = df.total !== undefined ? df.total : df.releases_total,
+      last30 = df.last_30d !== undefined ? df.last_30d : df.releases_last_30d,
+      attempts = cf.attempts !== undefined ? cf.attempts : cf.releases,
+      failures = cf.incidents + (cf.failed_deploys || 0);
   document.getElementById("g").innerHTML =
     "<div class='card'><b>" + fmt(df.per_week, "/wk") + "</b><span>deploy frequency<br>" +
-      df.releases_total + " releases, " + df.releases_last_30d + " in 30d</span></div>" +
+      total + " " + what + ", " + last30 + " in 30d</span></div>" +
     "<div class='card'><b>" + fmt(lt.median, "h") + "</b><span>lead time (median)<br>" +
       lt.samples + " samples</span></div>" +
-    "<div class='card'><b>" + (cf.releases ? (cf.rate * 100).toFixed(0) + "%" : "n/a") +
-      "</b><span>change-failure rate<br>" + cf.incidents + " incidents / " +
-      cf.releases + " releases</span></div>" +
+    "<div class='card'><b>" + (attempts ? (cf.rate * 100).toFixed(0) + "%" : "n/a") +
+      "</b><span>change-failure rate<br>" + failures + " failures / " +
+      attempts + " " + what + "</span></div>" +
     "<div class='card'><b>" + fmt(mt.median, "h") + "</b><span>MTTR (median)<br>" +
       mt.samples + " samples</span></div>";
 
