@@ -1,7 +1,10 @@
 // dora: DORA-lite metrics from the GitHub API, no dependencies.
-//   - deploy frequency: published releases (total, last 30d, per week)
-//   - lead time: earliest commit in a release → its publish time, median
-//   - change-failure rate: `incident`-labeled issues / releases
+//   - deploy frequency: successful production deployments (total, last 30d,
+//     per week); repos that record none fall back to published releases
+//   - lead time: earliest commit since the previous deploy → this one going
+//     live (or a release being published), median
+//   - change-failure rate: (`incident`-labeled issues + failed deploys) /
+//     finished deploy attempts (or releases)
 //   - mttr: incident open → close, median
 //
 // Run weekly by learn.yml, which commits docs/dora.json back to the repo —
@@ -21,6 +24,26 @@ import (
 type release struct {
 	TagName     string    `json:"tag_name"`
 	PublishedAt time.Time `json:"published_at"`
+}
+
+// A deployment is what GitHub records for a job with `environment: production`;
+// its statuses say whether it went live.
+type deployment struct {
+	ID        int64     `json:"id"`
+	Sha       string    `json:"sha"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type deploymentStatus struct {
+	State     string    `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// deploy is a finished production deployment: live at At, or failed.
+type deploy struct {
+	Ref string // the deployed commit
+	At  time.Time
+	OK  bool
 }
 
 type issue struct {
@@ -66,30 +89,82 @@ func medianHours(ds []time.Duration) float64 {
 	return ds[len(ds)/2].Hours()
 }
 
-func collect(api, repo string, now time.Time) (map[string]any, error) {
-	var releases []release
-	if err := gh(api, "/repos/"+repo+"/releases?per_page=20", &releases); err != nil {
+// deploys is every finished production deployment, oldest first: live at its
+// first success status, or failed. Ones still in progress don't count yet.
+func deploys(api, repo string) ([]deploy, error) {
+	var ds []deployment
+	if err := gh(api, "/repos/"+repo+"/deployments?environment=production&per_page=100", &ds); err != nil {
 		return nil, err
 	}
-	slices.SortFunc(releases, func(a, b release) int { return a.PublishedAt.Compare(b.PublishedAt) })
+	var out []deploy
+	for _, d := range ds {
+		var statuses []deploymentStatus
+		if err := gh(api, fmt.Sprintf("/repos/%s/deployments/%d/statuses?per_page=100", repo, d.ID), &statuses); err != nil {
+			return nil, err
+		}
+		dep := deploy{Ref: d.Sha}
+		for _, st := range statuses { // newest first; a success later goes inactive
+			switch st.State {
+			case "success":
+				dep.OK, dep.At = true, st.CreatedAt
+			case "failure", "error":
+				if !dep.OK {
+					dep.At = st.CreatedAt
+				}
+			}
+		}
+		if !dep.At.IsZero() {
+			out = append(out, dep)
+		}
+	}
+	slices.SortFunc(out, func(a, b deploy) int { return a.At.Compare(b.At) })
+	return out, nil
+}
+
+func collect(api, repo string, now time.Time) (map[string]any, error) {
+	all, err := deploys(api, repo)
+	if err != nil {
+		return nil, err
+	}
+	source := "deployments"
+	var live []deploy
+	failed := 0
+	for _, d := range all {
+		if d.OK {
+			live = append(live, d)
+		} else {
+			failed++
+		}
+	}
+	if len(all) == 0 { // no deployments recorded: releases stand in for deploys
+		source = "releases"
+		var releases []release
+		if err := gh(api, "/repos/"+repo+"/releases?per_page=20", &releases); err != nil {
+			return nil, err
+		}
+		for _, r := range releases {
+			live = append(live, deploy{Ref: r.TagName, At: r.PublishedAt, OK: true})
+		}
+		slices.SortFunc(live, func(a, b deploy) int { return a.At.Compare(b.At) })
+	}
 
 	last30 := 0
-	for _, r := range releases {
-		if now.Sub(r.PublishedAt) <= 30*24*time.Hour {
+	for _, d := range live {
+		if now.Sub(d.At) <= 30*24*time.Hour {
 			last30++
 		}
 	}
 	perWeek := 0.0
-	if len(releases) > 1 {
-		span := releases[len(releases)-1].PublishedAt.Sub(releases[0].PublishedAt)
-		perWeek = float64(len(releases)-1) / (span.Hours() / (24 * 7))
+	if len(live) > 1 {
+		span := live[len(live)-1].At.Sub(live[0].At)
+		perWeek = float64(len(live)-1) / (span.Hours() / (24 * 7))
 	}
 
-	// lead time: earliest commit between the previous release and this one
+	// lead time: earliest commit between the previous deploy and this one
 	var leads []time.Duration
-	for i := 1; i < len(releases); i++ {
+	for i := 1; i < len(live); i++ {
 		var cmp compare
-		if err := gh(api, "/repos/"+repo+"/compare/"+releases[i-1].TagName+"..."+releases[i].TagName, &cmp); err != nil {
+		if err := gh(api, "/repos/"+repo+"/compare/"+live[i-1].Ref+"..."+live[i].Ref, &cmp); err != nil {
 			return nil, err
 		}
 		var earliest time.Time
@@ -99,7 +174,7 @@ func collect(api, repo string, now time.Time) (map[string]any, error) {
 			}
 		}
 		if !earliest.IsZero() {
-			leads = append(leads, releases[i].PublishedAt.Sub(earliest))
+			leads = append(leads, live[i].At.Sub(earliest))
 		}
 	}
 
@@ -114,20 +189,27 @@ func collect(api, repo string, now time.Time) (map[string]any, error) {
 			repairs = append(repairs, i.ClosedAt.Sub(i.CreatedAt))
 		}
 	}
+	attempts := len(live) + failed
 	cfr := 0.0
-	if len(releases) > 0 {
-		cfr = float64(len(incidents)) / float64(len(releases))
+	if attempts > 0 {
+		cfr = float64(len(incidents)+failed) / float64(attempts)
 	}
 
 	return map[string]any{
 		"repo":         repo,
 		"generated_at": now.UTC().Format(time.RFC3339),
+		// releases_* and releases mirror the generic keys for dashboards that
+		// predate deployments.
 		"deploy_frequency": map[string]any{
-			"releases_total": len(releases), "releases_last_30d": last30, "per_week": perWeek,
+			"source": source, "total": len(live), "last_30d": last30, "per_week": perWeek,
+			"releases_total": len(live), "releases_last_30d": last30,
 		},
-		"lead_time_hours":     map[string]any{"median": medianHours(leads), "samples": len(leads)},
-		"change_failure_rate": map[string]any{"incidents": len(incidents), "releases": len(releases), "rate": cfr},
-		"mttr_hours":          map[string]any{"median": medianHours(repairs), "samples": len(repairs)},
+		"lead_time_hours": map[string]any{"median": medianHours(leads), "samples": len(leads)},
+		"change_failure_rate": map[string]any{
+			"incidents": len(incidents), "failed_deploys": failed, "attempts": attempts, "rate": cfr,
+			"releases": attempts,
+		},
+		"mttr_hours": map[string]any{"median": medianHours(repairs), "samples": len(repairs)},
 	}, nil
 }
 
