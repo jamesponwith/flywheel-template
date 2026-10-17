@@ -21,14 +21,18 @@ jobs:
   compare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
       - name: report gaps as one open issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # setup-go >= v6 sets GOTOOLCHAIN=local, and fleet needs a newer Go than
+          # go.mod's: without auto, `go run` fails into "doctor unavailable" and
+          # this check silently stops checking.
+          GOTOOLCHAIN: auto
         run: |
           set -euo pipefail
           out=$(go run github.com/jamesponwith/agentic-flywheel/tools/fleet@latest \

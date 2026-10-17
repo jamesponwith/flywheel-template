@@ -9,11 +9,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
       - name: workflows must be clone-portable
         # A workflow that runs `go run ./tools/...` works in this template and
         # nowhere else: instances cloned from it carry no copy of the tool.
@@ -30,8 +30,8 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       # -race by default: CI caught a race the local suite never hit, which is
@@ -43,21 +43,25 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # gitleaks scans history, not just the tip
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: secrets
         # Blocking. A committed secret is already leaked; failing loudly is the
         # only useful response.
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: vulnerabilities
         # Advisory until the noise level is known — a gate that cries wolf gets
         # bypassed, and a bypassed gate is worse than none (ADR 0001).
+        # setup-go >= v6 sets GOTOOLCHAIN=local; govulncheck needs a newer Go than
+        # go.mod's, so let go fetch the toolchain the tool declares.
+        env:
+          GOTOOLCHAIN: auto
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./... || echo "::warning::govulncheck found issues — triage into a bead"
