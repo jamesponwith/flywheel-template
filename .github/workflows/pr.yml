@@ -58,6 +58,10 @@ jobs:
       - name: vulnerabilities
         # Advisory until the noise level is known — a gate that cries wolf gets
         # bypassed, and a bypassed gate is worse than none (ADR 0001).
+        # setup-go >= v6 sets GOTOOLCHAIN=local; govulncheck needs a newer Go than
+        # go.mod's, so let go fetch the toolchain the tool declares.
+        env:
+          GOTOOLCHAIN: auto
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./... || echo "::warning::govulncheck found issues — triage into a bead"
