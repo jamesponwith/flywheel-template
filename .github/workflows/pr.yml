@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -28,7 +28,7 @@ jobs:
           echo "workflows are clone-portable"
 
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -41,7 +41,7 @@ jobs:
   # Facts, not judgement: the pre-push security lens reasons about the code,
   # this checks what is verifiably true about secrets and dependencies.
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
         with:
