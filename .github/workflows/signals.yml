@@ -26,7 +26,7 @@ jobs:
   intake:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: failed scheduled runs become beads
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
