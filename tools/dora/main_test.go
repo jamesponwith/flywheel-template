@@ -57,8 +57,9 @@ func TestCollect(t *testing.T) {
 		t.Errorf("lead_time = %+v, want median 48h from 1 sample", lt)
 	}
 	cf := m["change_failure_rate"].(map[string]any)
-	if cf["incidents"].(int) != 2 || cf["rate"].(float64) != 1.0 {
-		t.Errorf("cfr = %+v, want 2 incidents (PR excluded), rate 1.0", cf)
+	// both incidents opened while v0.1.0 was live: one failed change, not two
+	if cf["incidents"].(int) != 2 || cf["failed_changes"].(int) != 1 || cf["rate"].(float64) != 0.5 {
+		t.Errorf("cfr = %+v, want 2 incidents (PR excluded) blamed on 1 of 2 releases, rate 0.5", cf)
 	}
 	mt := m["mttr_hours"].(map[string]any)
 	if mt["samples"].(int) != 1 || mt["median"].(float64) != 6 {
