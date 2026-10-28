@@ -3,8 +3,9 @@
 //     per week); repos that record none fall back to published releases
 //   - lead time: earliest commit since the previous deploy → this one going
 //     live (or a release being published), median
-//   - change-failure rate: (`incident`-labeled issues + failed deploys) /
-//     finished deploy attempts (or releases)
+//   - change-failure rate: changes that failed / finished deploy attempts (or
+//     releases). A change failed if its deploy failed, or if an `incident`-labeled
+//     issue opened while it was live; several incidents on one deploy count once.
 //   - mttr: incident open → close, median
 //
 // Run weekly by learn.yml, which commits docs/dora.json back to the repo —
@@ -184,15 +185,28 @@ func collect(api, repo string, now time.Time) (map[string]any, error) {
 	}
 	incidents = slices.DeleteFunc(incidents, func(i issue) bool { return i.PullRequest != nil })
 	var repairs []time.Duration
+	broke := map[int]bool{} // index into live of each deploy an incident is blamed on
 	for _, i := range incidents {
 		if i.ClosedAt != nil {
 			repairs = append(repairs, i.ClosedAt.Sub(i.CreatedAt))
 		}
+		// ponytail: blames whichever deploy was live when the incident opened;
+		// match on the incident body's `version:` line if deploys start overlapping.
+		k := -1
+		for j, d := range live {
+			if !d.At.After(i.CreatedAt) {
+				k = j
+			}
+		}
+		if k >= 0 { // an incident before the first deploy has no change to blame
+			broke[k] = true
+		}
 	}
 	attempts := len(live) + failed
+	failedChanges := len(broke) + failed
 	cfr := 0.0
 	if attempts > 0 {
-		cfr = float64(len(incidents)+failed) / float64(attempts)
+		cfr = float64(failedChanges) / float64(attempts)
 	}
 
 	return map[string]any{
@@ -206,7 +220,8 @@ func collect(api, repo string, now time.Time) (map[string]any, error) {
 		},
 		"lead_time_hours": map[string]any{"median": medianHours(leads), "samples": len(leads)},
 		"change_failure_rate": map[string]any{
-			"incidents": len(incidents), "failed_deploys": failed, "attempts": attempts, "rate": cfr,
+			"incidents": len(incidents), "failed_deploys": failed, "failed_changes": failedChanges,
+			"attempts": attempts, "rate": cfr,
 			"releases": attempts,
 		},
 		"mttr_hours": map[string]any{"median": medianHours(repairs), "samples": len(repairs)},
