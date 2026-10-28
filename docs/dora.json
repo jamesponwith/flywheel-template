@@ -8,29 +8,30 @@
       "opened": 0
     },
     "final_gate_pass": {
-      "green": 19,
+      "green": 20,
       "measurable": true,
       "note": "state of checks at merge, not the first attempt: /check-runs returns filter=latest, so a failed-then-rerun PR counts as green. Structurally near 1.0 — do not read it as first-pass.",
       "rate": 1,
-      "total": 19
+      "total": 20
     },
     "review_round_trips": {
       "measurable": false,
       "median": 0,
-      "samples": 19,
+      "samples": 20,
       "why": "review happens locally (ADR 0002/0013); GitHub review events do not exist in this workflow"
     },
     "rework_commits_after_open": {
       "measurable": false,
       "median": 0,
-      "samples": 19,
+      "samples": 20,
       "why": "squash-merge workflow: commit dates precede PR creation, so this is structurally 0"
     }
   },
   "change_failure_rate": {
     "attempts": 0,
+    "failed_changes": 0,
     "failed_deploys": 0,
-    "incidents": 2,
+    "incidents": 0,
     "rate": 0,
     "releases": 0
   },
@@ -42,14 +43,14 @@
     "source": "releases",
     "total": 0
   },
-  "generated_at": "2026-10-26T12:08:51Z",
+  "generated_at": "2026-10-28T17:42:59Z",
   "lead_time_hours": {
     "median": 0,
     "samples": 0
   },
   "mttr_hours": {
-    "median": 23.28638888888889,
-    "samples": 2
+    "median": 0,
+    "samples": 0
   },
   "repo": "jamesponwith/flywheel-template"
 }
